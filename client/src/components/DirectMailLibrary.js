@@ -16,7 +16,7 @@ const DirectMailLibrary = (props) => {
     <Fragment>
       <div className='grid-2c'>
         <div>{letter === null ? <DirectMailCreator /> : <DMViewer />}</div>
-        <div className='sidebar' style={{overflowY:'scroll', height:'100vh', width:'200px'}}>
+        <div className='sidebar' style={{overflowY:'scroll', height:'100vh', width:'350px'}}>
         <Filter/>
           {filtered !== null
         ? filtered.map((mailItem) =>   <DirectMailItem key={mailItem._id} mailItem={mailItem} />)
