@@ -14,7 +14,7 @@ const DirectMailEntry = () => {
 
   const mailContext = useContext(MailContext);
 
-  const { mailItem, createDirectMailSchedule } = mailContext;
+  const { mailItem, createDirectMailSchedule, sendMail } = mailContext;
 
   const mailId = mailItem._id;
 
@@ -67,6 +67,7 @@ const DirectMailEntry = () => {
 
   return (
     <Fragment>
+      <button onClick={()=>sendMail()}>skeewees</button>
       <div className='grid-3'>
         <div>
           <button className='btn btn-block btn-dark' onClick={onClick2}>
