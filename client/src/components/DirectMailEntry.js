@@ -67,11 +67,15 @@ const DirectMailEntry = () => {
 
   return (
     <Fragment>
-      <button onClick={()=>sendMail()}>skeewees</button>
+    <div>
+      <h3 className='all-center'>
+      <button className='btn btn-dark btn block' onClick={()=>sendMail()}>Click Here To Manually Send Daily CSVs To Mail House</button>
+      </h3>
+      </div>
       <div className='grid-3'>
         <div>
-          <button className='btn btn-block btn-dark' onClick={onClick2}>
-            Add a letter
+          <button className='btn btn-block btn-light' onClick={onClick2}>
+           Create Entry
           </button>{" "}
         </div>
         <div>
@@ -92,7 +96,7 @@ const DirectMailEntry = () => {
             onChange={(e) =>
               setUnit({ ...unit, [e.target.name]: e.target.value })
             }>
-            <option value=''></option>
+            <option value=''>Select An Interval....</option>
             <option value='days'>Days</option>{" "}
             <option value='weeks'>Weeks</option>
           </select>

@@ -1,9 +1,16 @@
-import React from 'react'
+import React,{Fragment} from 'react'
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch,
+  useLocation,
+} from "react-router-dom";
+import Navbar from "./components/Navbar"
 import MailState from './context/MailContext/MailState'
-import Upload from "../src/components/Upload"
-import CsvViewModal from "../src/components/CsvViewModal"
+import LeadState from './context/lead/LeadState'
 import Dunder from "./components/Dunder"
 import "./App.css";
+import SorryDave from './components/SorryDave'
 
 
 
@@ -12,16 +19,22 @@ import "./App.css";
 const App = () => {
   return (
     <MailState>
-    <div>
-      <Upload/>
-    </div>
-    <div>
-      <Dunder/>
-
-    </div>
+      <LeadState>
 
 
-
+        <Router>
+        <Fragment>
+        <Navbar/>
+        </Fragment>
+          <Fragment>
+              <Switch>
+                 <Route exact path='/' component={Dunder} />
+                 <Route exact path='/sorrydave' component={SorryDave} />
+             </Switch>
+          </Fragment>
+        </Router>
+    
+      </LeadState>
     </MailState>
   )
 }

@@ -28,12 +28,12 @@ const DirectMailSchedule = (props) => {
   );
 
   return (
-    <div>
+    <div >
       <div>
         <DirectMailEntry />
       </div>
 
-      <div className='grid-5'>
+      <div>
         {Object.entries(sched)
           .sort((a, b) => (a > b ? 1 : -1))
           .map((sched) => (

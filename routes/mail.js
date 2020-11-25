@@ -61,7 +61,7 @@ const storage2 = new GridFsStorage({
           return reject(err);
         }
 
-        console.log(attachment);
+     //  console.log(attachment);
         const filename = attachment.filename;
         const fileInfo = {
           filename: filename,
@@ -69,7 +69,7 @@ const storage2 = new GridFsStorage({
         };
         resolve(fileInfo);
 
-        console.log(fileInfo);
+      ///  console.log(fileInfo);
       });
     });
   },
@@ -83,7 +83,7 @@ router.post('/zips', async (req,res)=>{
    try {
     const zips = await Zip.insertMany(req.body);
 
-    console.log(zips);
+   // console.log(zips);
 
     res.json(zips);
   } catch (err) {
@@ -94,7 +94,7 @@ router.post('/zips', async (req,res)=>{
 
 
 router.post("/", upload.single("fs"), async (req, res) => {
-  console.log(req.body);
+ // console.log(req.body);
   const {
     title,
     mailHouse,
@@ -118,7 +118,7 @@ router.post("/", upload.single("fs"), async (req, res) => {
 
   const { id } = req.file;
 
-  console.log(req.file);
+  //console.log(req.file);
   const fileid = id;
 
   const newMail = new Mail({
@@ -169,11 +169,14 @@ router.post("/delivery", async (req,res)=>{
     ).format(new Date(moment().subtract(parseInt(v), "day")))
   );
 
+
+  //console.log(filterDates)
+
   let leads = await Lead.find({
     "loadDate": { "$in": filterDates },
   });
 
-  console.log
+
 
   const listObj = leads.reduce(function (r, o) {
     var k = o.loadDate;
@@ -245,19 +248,23 @@ router.post("/delivery", async (req,res)=>{
 
   let drop = [];
 
- console.log(mailSchedule, 'sdkhsaljfhsdkjf')
+// console.log(mailSchedule, 'sdkhsaljfhsdkjf')
   mailSchedule = Object.entries(mailSchedule).forEach((entry) => {
 
 
     const master = entry.pop();
 
-   // console.log(master);
+const list = []
 
-    //console.log(master.length);
-    const list = Object.values(master.pop())
+let mailList
+
+
+    list.push(Object.values(master.pop())
       .flat()
-      .filter((e) => typeof e !== "string");
+      .filter((e) => typeof e !== "string"))
       
+
+
    // console.log(list, 'sdsd')
     function removeValue(objectArray) {
       objectArray.forEach((obj) => {
@@ -270,9 +277,9 @@ router.post("/delivery", async (req,res)=>{
       return objectArray;
     }
   
-    const mailList = removeValue(list)
+     mailList = removeValue(list)
 
-    //console.log(mailList.length)
+    //console.log(list)
 
     
 
@@ -298,7 +305,7 @@ router.post("/delivery", async (req,res)=>{
 
       tollFrees = tollFrees.map((obj) => ({
       ...obj,
-      mailList: mailList,
+      mailList: mailList.flat(),
       date: entry.toString(),
     }));
 
@@ -307,11 +314,14 @@ router.post("/delivery", async (req,res)=>{
   })
 
 drop = drop.flat()
+
+//console.log(drop)
 const updatedDrop = []
 async function withForOf() {
   for (const tollFree of drop) {
      const zipCodes = Object.values(tollFree)[0].split(",");
     
+     
     
       let updatedList = []
       const {
@@ -328,18 +338,22 @@ async function withForOf() {
         zipCodeSuppress,
       } = tollFree;
 
+
+
+
+    console.log(mailList)
    zips = await Zip.find({
     "class": { "$in": zipCodes },
   });
    
   zips = zips.map(zip => zip.zip4)
-
+if(!mailList.includes(undefined)){
 switch (zipCodeSuppress) {
   case "keepSelect":
-    updatedList = mailList.filter((e) => zips.includes(e.zip4.substring(0,5)))
+    updatedList = mailList.filter((e) => zips.includes(e.zip))
     break;
   case "suppressSelect":
-    updatedList = mailList.filter((e) => !zips.includes(e.zip4.substring(0,5)))
+    updatedList = mailList.filter((e) => !zips.includes(e.zip))
     break;  
 }
 
@@ -440,6 +454,9 @@ updatedList = updatedList.filter((e) => e.fileType == "State Tax Lien");
     break;
 }
 }
+}
+
+//console.log(updatedList)
    const combinedCost = unitCost + postageCeiling
    const  dropItem = {
         updatedList,
@@ -458,7 +475,9 @@ updatedList = updatedList.filter((e) => e.fileType == "State Tax Lien");
     const gfs = Grid(conn.db, mongoose.mongo);
     const json2csvParser = new Parser();
 
-updatedDrop.forEach((drop) =>{
+const slop = updatedDrop.filter(e => e.updatedList.length > 0)
+console.log(slop)
+slop.forEach((drop) =>{
 
  
     const transporter = nodemailer.createTransport({
@@ -492,45 +511,43 @@ gfs.files.find({ filename: drop.title }).toArray(function (err, files) {
           content: new Buffer(buffer, "application/pdf"),
         };
         
-            drop.updatedList.map((list, i) =>
-      result[i]
-        ? (result[i].fullName = list.fullName)(
-            (result[i].First_Name = list.firstName)
-          )((result[i].Last_Name = list.lastName))(
-            (result[i].Delivery_Address = list.deliveryAddress)
-          )((result[i].City = list.city))((result[i].State = list.state))(
-            (result[i].Zip_4 = list.zip4)
-          )((result[i].County = list.county))(
-            (result[i].File_Type = list.fileType)
-          )((result[i].Amount = list.amount))(
-            (result[i].pinCode = list.pinCode)
-          )(
-            (result[i].Five_Amount = (parseFloat(list.amount) * 0.05).toFixed(
-              2
-            ))
-          )(
-            (result[i].Nine_Amount = (parseFloat(list.amount) * 0.95).toFixed(
-              2
-            ))
-          )
-        : (result[i] = {
-            Full_Name: list.fullName,
-            First_Name: list.firstName,
-            Last_Name: list.lastName,
-            Delivery_Address: list.deliveryAddress,
-            City: list.city,
-            State: list.state,
-            Zip_4: list.zip4,
-            County: list.county,
-            File_Type: list.fileType,
-            Amount: list.amount,
-            Pin_Code: list.pinCode,
-            Five_Amount: (parseFloat(list.amount) * 0.05).toFixed(2),
-            Nine_Amount: (parseFloat(list.amount) * 0.95).toFixed(2),
-          })
-    );
+  const result = drop.updatedList.map(({fullName, fileType, filingDate, firstName, mailKey, lastName, state,zip, city, county, plaintiff, amount, address, age, dob, ssn, otherliens, phones, emailAddresses}) => {
+  let obj = {
+    Full_Name: fullName,
+    First_Name: firstName,
+    Last_Name: lastName,
+    Address: address,
+    mailKey: mailKey,
+    city:city,
+    State: state,
+    Zip_4: zip,
+    file_date: filingDate,
+    County: county,
+    plaintiff: plaintiff,
+    lien_type: fileType,
+    Amount: amount,
+    age: age,
+    dob: dob,
+    ssn: ssn,
+    Five_Amount : parseFloat(amount) * 0.05.toFixed(2),
+    Nine_Amount : parseFloat(amount) * 0.95.toFixed(2)
 
-        const csv = json2csvParser.parse(result);
+  };
+
+ phones.forEach((phone, i) => obj[`phone${i+1}`] = phone)
+ emailAddresses.forEach((addr, i) => obj[`emailAddress${i+1}`] = addr)
+ otherliens.filter((e)=> e.plaintiff && e.plaintiff.includes("Internal Revenue") || e.plaintiff && e.plaintiff.includes("State of") || e.plaintiff && e.plaintiff.includes("IRS")).forEach(({plaintiff, amount}, i) => {
+    obj[`plaintiff${i+1}`] = plaintiff;
+    obj[`amount${i+1}`] = amount;
+  });
+
+  return obj;
+})
+
+//console.log(result)
+
+
+     const csv =  json2csvParser.parse(result) 
 
         const tracker = drop.title;
         const dt = drop.date;
@@ -543,17 +560,20 @@ gfs.files.find({ filename: drop.title }).toArray(function (err, files) {
      const mailer = {
           title: "Daily Mail Drop",
           from: "NTE",
-          to: ["mforde@nattaxexperts.com", "mickeygray85@hotmail.com","poakes@nattaxexperts.com"],
+          to: ["mickeygray85@hotmail.com"],
           subject: ` ${tracker} Daily Mail Drop `,
           attachments: [attachment1, attachment2],
           text: `Attached is the pdf and csv for the Direct Mail Campaign ${drop.title}. Thanks, NTE!`,
         };
 
-    transporter.sendMail(mailer);  
+   transporter.sendMail(mailer);  
 }) 
 })
+
 }) 
-} 
+
+}
+
 withForOf();
 })
 cron.schedule('0 6 * * Monday-Friday', async () => {
@@ -565,24 +585,13 @@ cron.schedule('0 6 * * Monday-Friday', async () => {
   }, {});
 
   var filterDates = Object.keys(scheduleObj).map((v) =>
-    Intl.DateTimeFormat(
-      "fr-CA",
-      {
-        timeZone: "America/Los_Angeles",
-      },
-      {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-      }
-    ).format(new Date(moment().subtract(parseInt(v), "day")))
+  new Date(moment().subtract(parseInt(v), "day"))
   );
 
   let leads = await Lead.find({
     "loadDate": { "$in": filterDates },
   });
 
-  console.log
 
   const listObj = leads.reduce(function (r, o) {
     var k = o.loadDate;
@@ -654,7 +663,7 @@ cron.schedule('0 6 * * Monday-Friday', async () => {
 
   let drop = [];
 
- console.log(mailSchedule, 'sdkhsaljfhsdkjf')
+ //console.log(mailSchedule, 'sdkhsaljfhsdkjf')
   mailSchedule = Object.entries(mailSchedule).forEach((entry) => {
 
 
@@ -681,7 +690,7 @@ cron.schedule('0 6 * * Monday-Friday', async () => {
   
     const mailList = removeValue(list)
 
-    //console.log(mailList.length)
+    console.log(mailList.length)
 
     
 
@@ -1013,12 +1022,12 @@ router.get("/mailItem", async (req, res) => {
 });
 router.get("/schedule", async (req, res) => {
   const schedule = await Schedule.find();
-  console.log(schedule.length);
+ // console.log(schedule.length);
   res.json(schedule);
 });
 
 router.post("/schedule", async (req, res) => {
-  console.log(req.body.entry.length, "1");
+ // console.log(req.body.entry.length, "1");
 
   let dropDay;
   if (req.body.unit.unitType === "weeks") {
@@ -1038,18 +1047,18 @@ router.post("/schedule", async (req, res) => {
     element.scheduleDate = scheduleDate;
     schedules.push(element);
   });
-  console.log(req.body.entry.length, "1");
+ // console.log(req.body.entry.length, "1");
 
-  console.log(schedules.length, "1");
+ // console.log(schedules.length, "1");
   const schedule = await Schedule.insertMany(schedules);
 
   res.json(schedule);
 
-  console.log(schedule.length);
+ // console.log(schedule.length);
 });
 
 router.put("/costs", async (req, res) => {
-  console.log(req.body);
+ // console.log(req.body);
 
   let tot;
 
@@ -1058,7 +1067,7 @@ router.put("/costs", async (req, res) => {
     date: new Date(Date.now()),
   };
 
-  console.log(payobj);
+ // console.log(payobj);
 
   const mailer = await Mail.findOneAndUpdate(
     { "title": req.body.mailer },
@@ -1070,7 +1079,7 @@ router.put("/costs", async (req, res) => {
   );
 
   res.json(mailer);
-  console.log(mailer);
+  ///console.log(mailer);
 });
 
 

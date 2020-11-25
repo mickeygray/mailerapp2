@@ -39,7 +39,9 @@
     "react-csv-to-table": "0.0.4",
     "react-pdf": "^5.0.0",
     "salt": "^0.5.5",
-    "set-interval": "^2.0.4"
+    "set-interval": "^2.0.4",
+    "utf8": "^3.0.0",
+    "uuid": "^8.3.1"
   },
   "devDependencies": {},
   "scripts": {
