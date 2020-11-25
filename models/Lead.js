@@ -40,6 +40,7 @@ const leadSchema = new Schema(
     plaintiff: String,
     age: String,
     dob: String,
+    scrapeDate: Date,
     phone: String,
     phones: [String],
     ageRange: String,
