@@ -9,7 +9,7 @@ const Navbar = () => {
 
 
         <Link to='/SorryDave'>Sorry Dave!</Link>
-        <Link to='/Dunder'>Dunder!</Link>
+        <Link to='/'>Dunder!</Link>
 
       </li>
     </Fragment>
