@@ -19,8 +19,10 @@ const leads = []
   if(Object.keys(req.body[0]).toString().includes("entityName")){
   
    req.body.map(({entityName1, entityName2, address, city, state, zip, filingDate, amount, stateFiled, countyFiled}) => {
+  var r = /\d+/g;
+let addressNumber = address.match(r) 
 
-  let addressNumber = address.match(r)[0]
+console.log(address) 
 
   const nameString = entityName1.split(' ')  
 
@@ -63,11 +65,17 @@ const leads = []
 } else {
     req.body.map(({fileType, filingDate, loadDate, address, city, state, zip, zip4, plaintiff, amount, entityType, plantiff, deliveryAddress, county, rmsid, firstName, midInit, lastName, suffix, fullName }) => {
     var r = /\d+/g;
-    let addressNumber = address.match(r)[0]
-    let deliveryAddressNumber = address.match(r)[0]
+    let addressNumber = address ? address.match(r).toString() :''
+    let deliveryAddressNumber = deliveryAddress ? deliveryAddress.match(r).toString():''
 
     let midNm
+    let lastNm
 
+    if(lastName === null){
+       lastNm=''
+    }else{
+      lastNm=lastName
+    }
     if(midInit === null){
       midNm = ''
     } else {
@@ -77,17 +85,17 @@ const leads = []
   let obj = {
   fullName: fullName && suffix ? firstName + ' ' + midNm + " " + lastName + " " + suffix :  firstName + ' ' + midNm + " " + lastName,
   firstName: firstName,
-  lastName: lastName,
+  lastName: lastNm,
   address: deliveryAddress ? deliveryAddress : address,
   city: city,
   state: state,
   zip: zip4 ? zip4 : zip,
   filingDate:filingDate,
-  amount:amount,
+  amount:amount.replace("$","").replace(",","").replace(",","").replace(/\.[0-9][0-9]/,""),
   county: county,
   plaintiff: plantiff ? plantiff : plaintiff,
   fileType: fileType,
-  mailKey: deliveryAddress ? deliveryAddressNumber + amount + lastName.toLowerCase() : addressNumber + amount + lastName.toLowerCase()  ,
+  mailKey: deliveryAddress ? deliveryAddressNumber + amount.replace("$","").replace(",","").replace(/\.[0-9][0-9]/,"")+lastNm.toLowerCase() :  addressNumber + amount + lastNm.toLowerCase(),
   lexisQuery: `type(${fileType}) and amount (btw ${parseInt(amount)-500} and ${parseInt(amount)+500}) AND filing-date(is ${filingDate})`,
   loadDate: loadDate,
   entityType: entityType,
@@ -118,10 +126,10 @@ var uniq = leads
 
   const newLeads = leads.filter((lead)=> !duplicates.includes(lead.mailKey))
 
-  //await Lead.insertMany(newLeads)
+  await Lead.insertMany(newLeads)
 
   res.json(dupLeads)
-
+  console.log(newLeads)
   console.log(dupLeads)
 }) 
 
@@ -288,7 +296,90 @@ Lead.findOneAndRemove({"dupId":req.query.q },
 
 });
 
+router.get("/releases", async (req,res)=>{
+  const {startDate,endDate} = req.body
 
+  const periodStart = new Date(startDate)
+  const periodEnd = new Date(endDate)
+
+
+  let leads = await Lead.find({
+    loadDate: {
+	    $gte:periodStart,
+	    $lte:periodEnd
+    }})	
+
+   leads = leads.filter((lead)=>lead.stateRelease.includes('POSSIBLE')||lead.fedRelease.includes('POSSIBLE'))	
+
+   res.json(leads)	   
+})
+
+router.get("/lex", async (req, res) =>  {
+
+  const { startDate, endDate } = req.body;
+
+  const momentPeriodStart = new Date(startDate);
+  const momentPeriodEnd = new Date(endDate);
+
+  console.log(momentPeriodStart);
+
+  const leads = await Lead.find({
+    loadDate: {
+      $gte: momentPeriodStart,
+      $lte: momentPeriodEnd,
+    },
+  });
+})	
+router.get("/lex", async (req, res) =>  {
+
+  const { startDate, endDate } = req.body;
+
+  const momentPeriodStart = new Date(startDate);
+  const momentPeriodEnd = new Date(endDate);
+
+  console.log(momentPeriodStart);
+
+  const leads = await Lead.find({
+    loadDate: {
+      $gte: momentPeriodStart,
+      $lte: momentPeriodEnd,
+    },
+  });
+
+  const mailKeys = leads.map(lead => lead.mailkey)
+
+  const lexs = await LexKey.find({
+    "mailKey": { "$in": mailKeys },
+  })
+
+  const result = lexs.map(({mailKey,lexs})=>{
+   
+   const match = leads.filter(e=> e.mailKey === mailKey).map((lead)=>{lead.fullName,lead.address,lead.mailKey}) 	  
+   
+   let obj = {
+    mailKey: mailKey,
+    lexisInfo: lexs,
+    fullName: match.fullName,
+    address: match.address	   
+   };	  
+  return obj 
+  })	
+ 
+  const matchKeys = match.map(m=>m.mailKey) 	
+  const result2 = leads.filter(e=> !matchKeys.includes(e.mailKey)).map(lead=>{
+  let obj ={
+  mailKey: lead.mailKey,
+  lexisInfo: lead.lexisQuery,
+  fullName: lead.fullName, 
+  address: lead.address	  
+  }
+  return obj
+  })	
+
+  const lexis  = [].concat(result1, result2)
+
+  res.json(lexis)	  
+})
 
  router.get("/today", async (req, res) => {
   // console.log(req);
@@ -425,11 +516,12 @@ router.put("/", async (req, res) => {
     });
   };
 
-  let reg1 = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gis; // Get emails
+  let reg1 = /(?:[a-z0-9!#$%'&*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gis;
   let reg2 = /^\s*(?:\+?(\d{1,3}))?[- (]*(\d{3})[- )]*(\d{3})[- ]*(\d{4})(?: *[x/#]{1}(\d+))?\s*$/gim;
   let liens = string.match(/(?<=Debtor Information\s*).*?(?=\s*Number)/gs);
-  let emails = [string.match(reg1)].flat()
-  let phone1 = [string.match(reg2)].flat()
+  
+  let emails = string.match(reg1) || []
+  let phone1 = string.match(reg2) || []
   
 
   if (phone1.length > 0)

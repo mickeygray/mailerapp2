@@ -21,6 +21,7 @@ const leadSchema = new Schema(
     state: String,
     zip4: String,
     zip: String,
+    lexisQuery: String,	  
     zipCode: String,
     county: String,
     ssn: String,

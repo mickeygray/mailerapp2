@@ -14,11 +14,15 @@ UPLOAD_SCRAPES,
 POST_LEADS, 
 GET_DUPS,
 SET_LEADS,
+GET_LEXS,
+SET_KEYS,
+GET_RELEASES	
 } from "../types";
 
 const LeadState = (props) => {
   const initialState = {
-   leads: []
+   leads: [],
+   keys: []	  
 }
 
   const [state, dispatch] = useReducer(leadReducer, initialState);
@@ -140,10 +144,43 @@ const uploadDaily = async (data) => {
        setLeads(res.data)
  } 
 
+  const getLexs = async (dates) =>{
+
+   	  
+   const res = await axios.get('/api/leads/lexs',dates)
+   
+
+  dispatch({
+    type:GET_LEXS,
+    payload:res.data	   
+   })
+     
+   setKeys(res.data)	  
+  }
+
+   const setKeys = (keys) =>{
+   dispatch({
+    type:SET_KEYS,
+    payload:keys	   
+   })
+
+   }
+
+   const getReleases = async (dates) =>{
+    const res = await axios.get('/api/leads/releases',dates)
+     dispatch({
+      type:GET_RELEASES,
+      payload:res.data
+     })
+    setLeads(res.data) 	   
+   
+   }
+
   return (
     <LeadContext.Provider
       value={{
       uploadFiles,
+      getReleases,		      
       sendTodays,      
       uploadDaily,
       setLeads,
@@ -154,6 +191,9 @@ const uploadDaily = async (data) => {
       getDups,  
       clearLeads,
       putDup,
+      getLexs,
+      setKeys,
+      keys: state.keys,		      
       leads:state.leads
       }}>
       {props.children}

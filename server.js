@@ -21,6 +21,12 @@ app.use(express.static(__dirname + "/public"));
 app.use("/api/leads", require("./routes/leads"));
 app.use("/api/mail", require("./routes/mail"));
 
+
+app.get('/*', (req,res) =>{
+res.send("hello world")
+})
+
+
 if (process.env.NODE_ENV === "production") {
   // Set static folder
   app.use(express.static("client/build"));
@@ -31,5 +37,5 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => console.log(`server started on port ${PORT}`));
+const PRIVATE = process.env.PRIVATE
+app.listen(PORT || 8081, PRIVATE , () => console.log(`server started on port ${PORT}`));

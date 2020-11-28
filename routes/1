@@ -249,7 +249,7 @@ async function withForOf() {
         mailList,
         lienAmount,
         vendor,
-	zipCode,      
+	zipCodes,      
         postageCeiling,
         unitCost,
         mailHouse,
@@ -263,21 +263,21 @@ async function withForOf() {
 
 
     
- 
 
-  let zips = await Zip.find({
-    "class": { "$in": zipCode },
+
+  zips = await Zip.find({
+    "class": { "$in": zipCodes },
   });
    
   zips = zips.map(zip => zip.zip4)
-console.log(zips)
+
 switch (zipCodeSuppress) {
   case "keepSelect":
-    updatedList = mailList.filter((e) => zips.includes(e.zip.substring(0,5)))
+    updatedList = mailList.filter((e) => e.zip ? zips.includes(e.zip) : zips.includes(e.zip4.substring(0,5))
     break;
   case "suppressSelect":
-    updatedList = mailList.filter((e) => zips.includes(e.zip.substring(0,5)))
-  break;  
+    updatedList = mailList.filter((e) => e.zip ?!zips.includes(e.zip) : !zips.includes(e.zip4.substring(0,5)))
+    break;  
 }
 console.log(updatedList.length)
 if(updatedList.length > 0){
@@ -372,10 +372,10 @@ updatedList = updatedList.filter((e) => e.fileType == "State Tax Lien");
 } else {
   switch (lienType) {
   case "state":
-    updatedList = mailList.filter((e) => e.fileType == "State Tax Lien");
+    updatedList = list.filter((e) => e.fileType == "State Tax Lien");
     break;
   case "federal":
-    updatedList = mailList.filter((e) => e.fileType == "Federal Tax Lien");
+    updatedList = list.filter((e) => e.fileType == "Federal Tax Lien");
     break;
 }
 }
@@ -503,54 +503,26 @@ gfs.files.find({ filename: drop.title }).toArray(function (err, files) {
 
 withForOf();
 })
-cron.schedule('0 */6 * * *', async () => {
-   const schedule = await Schedule.find();
+cron.schedule('0 6 * * Monday-Friday', async () => {
+ const schedule = await Schedule.find();
   var scheduleObj = schedule.reduce(function (r, o) {
     var k = parseInt(o.lookBack);
     if (r[k] || (r[k] = [])) r[k].push(o);
     return r;
   }, {});
 
-  
-  
   var filterDates = Object.keys(scheduleObj).map((v) =>
-     Intl.DateTimeFormat(
-      "fr-CA",
-      {
-        timeZone: "America/Los_Angeles",
-      },
-      {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-      }
-    ).format(new Date(moment().subtract(parseInt(v), "day").format('LL')
-  )));
+  new Date(moment().subtract(parseInt(v), "day"))
+  );
 
-
- 
-
-   let leads = await Lead.find({
+  let leads = await Lead.find({
     "loadDate": { "$in": filterDates },
-  }); 
- 
- 
+  });
 
-  console.log(leads.length)
-//console.log(listObj)
-  const mailSchedule  = schedule.reduce(function (r, o) {
-    var k = o.lookBack;
-    tracking = o.tracking,
-    lienAmount = o.lienAmount,
-    zipCodeSuppress = o.zipCodeSuppress,
-    zipCode = o.zipCode,
-    lienType = o.lienType,
-    vendor = o.vendor,
-    postageCeiling = o.postageCeiling,
-    unitCost = o.unitCost,
-    title = o.title,
-    mailHouse = o.mailHouse,  	  
-    loadDate  = Intl.DateTimeFormat(
+
+  const listObj = leads.reduce(function (r, o) {
+    var k = o.loadDate;
+    key = Intl.DateTimeFormat(
       "fr-CA",
       {
         timeZone: "America/Los_Angeles",
@@ -560,11 +532,37 @@ cron.schedule('0 */6 * * *', async () => {
         month: "numeric",
         day: "numeric",
       }
-    ).format(new Date(moment().subtract(parseInt(k), "day").format('LL')))
-   mailList = leads	  
-    if (r[loadDate] || (r[loadDate] = []))
-      r[loadDate].push(
-         {
+    ).format(moment(new Date(k)));
+    if (r[key] || (r[key] = [key])) r[key].push(o);
+    return r;
+  }, {});
+
+  var scheduleObj2 = schedule.reduce(function (r, o) {
+    var k = o.lookBack;
+    (tracking = o.tracking),
+      (lienAmount = o.lienAmount),
+      (zipCodeSuppress = o.zipCodeSuppress),
+      (zipCode = o.zipCode),
+      (lienType = o.lienType),
+      (vendor = o.vendor);
+    postageCeiling = o.postageCeiling;
+    unitCost = o.unitCost;
+    title = o.title;
+    mailHouse = o.mailHouse;
+    key = Intl.DateTimeFormat(
+      "fr-CA",
+      {
+        timeZone: "America/Los_Angeles",
+      },
+      {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      }
+    ).format(new Date(moment().subtract(parseInt(k), "day")));
+    if (r[key] || (r[key] = []))
+      r[key].push({
+        [tracking]: {
           tracking,
           lienAmount,
           title,
@@ -576,24 +574,89 @@ cron.schedule('0 */6 * * *', async () => {
           vendor,
           tracking,
           mailHouse,
-  	  mailList,
-          loadDate,		 
-        }     
-     );
-
-    return Object.values(r);
+        },
+      });
+    return r;
   }, {});
 
+  function customizer(objValue, srcValue) {
+    if (_.isArray(srcValue)) {
+      return srcValue.concat({ list: objValue });
+    }
+  }
+
+  let mailSchedule = mergeWith(listObj, scheduleObj2, customizer);
+  
+
+  let drop = [];
+
+ //console.log(mailSchedule, 'sdkhsaljfhsdkjf')
+  mailSchedule = Object.entries(mailSchedule).forEach((entry) => {
+
+
+    const master = entry.pop();
+
+   // console.log(master);
+
+    //console.log(master.length);
+    const list = Object.values(master.pop())
+      .flat()
+      .filter((e) => typeof e !== "string");
+      
+   // console.log(list, 'sdsd')
+    function removeValue(objectArray) {
+      objectArray.forEach((obj) => {
+        Object.entries(obj).forEach(([key, val]) => {
+          if (key === "_doc") {
+            val.amount = parseInt(val.amount.replace("$", "").replace(",", ""));
+          }
+        });
+      });
+      return objectArray;
+    }
+  
+    const mailList = removeValue(list)
+
+    console.log(mailList.length)
+
+    
+
+
+         //console.log(master)
+
+    let tollFrees = [];
+
+    master.forEach((tracker) => {
+
+      const obj = Object.assign(
+        {},
+        ...(function _flatten(o) {
+          return [].concat(
+            ...Object.keys(o).map((k) =>
+              typeof o[k] === "object" ? _flatten(o[k]) : { [k]: o[k] }
+            )
+          );
+        })(tracker)
+      );
+      tollFrees.push(obj);
+    });
+
+      tollFrees = tollFrees.map((obj) => ({
+      ...obj,
+      mailList: mailList,
+      date: entry.toString(),
+    }));
+
+     drop.push(tollFrees)
+
+  })
+
+drop = drop.flat()
 const updatedDrop = []
 async function withForOf() {
-
-  for (const tollFree of mailSchedule) 
-	{
-
-      
+  for (const tollFree of drop) {
+     const zipCodes = Object.values(tollFree)[0].split(",");
     
-    
-     
     
       let updatedList = []
       const {
@@ -602,37 +665,29 @@ async function withForOf() {
         mailList,
         lienAmount,
         vendor,
-	zipCode,      
         postageCeiling,
         unitCost,
         mailHouse,
         date,
-	title, 
-	loadDate,      
+        title, 
         zipCodeSuppress,
-      } = tollFree[0]
-	
-	const scheduleDate = tollFree[0]
+      } = tollFree;
 
-
-    
- 
-
-  let zips = await Zip.find({
-    "class": { "$in": zipCode },
+   zips = await Zip.find({
+    "class": { "$in": zipCodes },
   });
    
   zips = zips.map(zip => zip.zip4)
-console.log(zips)
+
 switch (zipCodeSuppress) {
   case "keepSelect":
-    updatedList = mailList.filter((e) => zips.includes(e.zip.substring(0,5)))
+    updatedList = mailList.filter((e) => zips.includes(e.zip4.substring(0,5)))
     break;
   case "suppressSelect":
-    updatedList = mailList.filter((e) => zips.includes(e.zip.substring(0,5)))
-  break;  
+    updatedList = mailList.filter((e) => !zips.includes(e.zip4.substring(0,5)))
+    break;  
 }
-console.log(updatedList.length)
+
 if(updatedList.length > 0){
 switch (lienAmount) {
   case "15000":
@@ -677,7 +732,6 @@ updatedList = mailList.filter((e) => parseFloat(e.amount) > 100000);
     break;
 }
 } 
-console.log(updatedList.length)
 
 if(updatedList.length > 0){
 
@@ -711,7 +765,6 @@ switch (vendor) {
     break;
 }
 }
-console.log(updatedList.length)
 
 if(updatedList.length > 0){
 switch (lienType) {
@@ -732,11 +785,6 @@ updatedList = updatedList.filter((e) => e.fileType == "State Tax Lien");
     break;
 }
 }
-
-updatedList = updatedList.filter((e) => e.loadDate.toString() ===  new Date(loadDate).toString())
-
-console.log(updatedList.length)
-
    const combinedCost = unitCost + postageCeiling
    const  dropItem = {
         updatedList,
@@ -755,9 +803,7 @@ console.log(updatedList.length)
     const gfs = Grid(conn.db, mongoose.mongo);
     const json2csvParser = new Parser();
 
-const slop = updatedDrop.filter(e => e.updatedList.length > 0)
-//console.log(slop)
-slop.forEach((drop) =>{
+updatedDrop.forEach((drop) =>{
 
  
     const transporter = nodemailer.createTransport({
@@ -791,43 +837,45 @@ gfs.files.find({ filename: drop.title }).toArray(function (err, files) {
           content: new Buffer(buffer, "application/pdf"),
         };
         
-  const result = drop.updatedList.map(({fullName, fileType, filingDate, firstName, mailKey, lastName, state,zip, city, county, plaintiff, amount, address, age, dob, ssn, otherliens, phones, emailAddresses}) => {
-  let obj = {
-    Full_Name: fullName,
-    First_Name: firstName,
-    Last_Name: lastName,
-    Address: address,
-    mailKey: mailKey,
-    city:city,
-    State: state,
-    Zip_4: zip,
-    file_date: filingDate,
-    County: county,
-    plaintiff: plaintiff,
-    lien_type: fileType,
-    Amount: amount,
-    age: age,
-    dob: dob,
-    ssn: ssn,
-    Five_Amount : parseFloat(amount) * 0.05.toFixed(2),
-    Nine_Amount : parseFloat(amount) * 0.95.toFixed(2)
+            drop.updatedList.map((list, i) =>
+      result[i]
+        ? (result[i].fullName = list.fullName)(
+            (result[i].First_Name = list.firstName)
+          )((result[i].Last_Name = list.lastName))(
+            (result[i].Delivery_Address = list.deliveryAddress)
+          )((result[i].City = list.city))((result[i].State = list.state))(
+            (result[i].Zip_4 = list.zip4)
+          )((result[i].County = list.county))(
+            (result[i].File_Type = list.fileType)
+          )((result[i].Amount = list.amount))(
+            (result[i].pinCode = list.pinCode)
+          )(
+            (result[i].Five_Amount = (parseFloat(list.amount) * 0.05).toFixed(
+              2
+            ))
+          )(
+            (result[i].Nine_Amount = (parseFloat(list.amount) * 0.95).toFixed(
+              2
+            ))
+          )
+        : (result[i] = {
+            Full_Name: list.fullName,
+            First_Name: list.firstName,
+            Last_Name: list.lastName,
+            Delivery_Address: list.deliveryAddress,
+            City: list.city,
+            State: list.state,
+            Zip_4: list.zip4,
+            County: list.county,
+            File_Type: list.fileType,
+            Amount: list.amount,
+            Pin_Code: list.pinCode,
+            Five_Amount: (parseFloat(list.amount) * 0.05).toFixed(2),
+            Nine_Amount: (parseFloat(list.amount) * 0.95).toFixed(2),
+          })
+    );
 
-  };
-
- phones.forEach((phone, i) => obj[`phone${i+1}`] = phone)
- emailAddresses.forEach((addr, i) => obj[`emailAddress${i+1}`] = addr)
- otherliens.filter((e)=> e.plaintiff && e.plaintiff.includes("Internal Revenue") || e.plaintiff && e.plaintiff.includes("State of") || e.plaintiff && e.plaintiff.includes("IRS")).forEach(({plaintiff, amount}, i) => {
-    obj[`plaintiff${i+1}`] = plaintiff;
-    obj[`amount${i+1}`] = amount;
-  });
-
-  return obj;
-})
-
-//console.log(result)
-
-
-     const csv =  json2csvParser.parse(result) 
+        const csv = json2csvParser.parse(result);
 
         const tracker = drop.title;
         const dt = drop.date;
@@ -840,23 +888,18 @@ gfs.files.find({ filename: drop.title }).toArray(function (err, files) {
      const mailer = {
           title: "Daily Mail Drop",
           from: "NTE",
-          to: ["poakes@nattaxexperts.com","mickeygray85@hotmail.com","mforde@nattaxexperts.com"],
+          to: ["mforde@nattaxexperts.com", "mickeygray85@hotmail.com","poakes@nattaxexperts.com"],
           subject: ` ${tracker} Daily Mail Drop `,
           attachments: [attachment1, attachment2],
-          text: `This will happen every 6 hours the first few days, then every three hours, then every half hour, then once a second. Attached is the pdf and csv for the Direct Mail Campaign ${drop.title}. Thanks, NTE!`,
+          text: `Attached is the pdf and csv for the Direct Mail Campaign ${drop.title}. Thanks, NTE!`,
         };
 
-  transporter.sendMail(mailer);  
+    transporter.sendMail(mailer);  
 }) 
 })
-
 }) 
-
-}
-
+} 
 withForOf();
-
-
 });
 
 

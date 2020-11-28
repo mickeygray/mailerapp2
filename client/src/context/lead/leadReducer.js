@@ -8,7 +8,10 @@ import {
   POST_LEADS,
   GET_DUPS,
   UPLOAD_SCRAPES,
-  SET_LEADS
+  SET_LEADS,
+  SET_KEYS,
+  GET_LEXS,
+  GET_RELEASES,	
 } from '../types';
 
 export default (state, action) => {
@@ -18,11 +21,26 @@ export default (state, action) => {
         ...state,
         data: action.payload,
       };
+    case GET_RELEASES: 
+      return {
+        ...state,
+	leads:action.payload
+      };	      
     case UPLOAD_SCRAPES:
       return {
         ...state,
         data: action.payload,
       };
+    case SET_KEYS:
+      return {
+	...state,
+	keys: action.payload
+      };
+    case GET_LEXS:
+      return {
+	...state,
+	keys: action.payload
+      };	      
     case UPLOAD_DAILY:
       return {
         ...state,

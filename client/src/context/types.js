@@ -25,3 +25,7 @@ export const CLEAR_LEADS = "CLEAR_LEADS"
 export const POST_LEADS = "POST_LEADS"
 export const GET_DUPS = "GET_DUPS"
 export const SET_LEADS = "SET_LEADS"
+export const GET_LEXS = "GET_LEXS"
+export const SET_KEYS = "SET_KEYS"
+export const GET_RELEASES = "GET_RELEASES"
+
